@@ -1,0 +1,52 @@
+# Chapter 13 lab: be the accounts team. Runs the same company/mcp_server.py
+# you've used all book, from a ConfigMap, in a stock Python image.
+# Create the namespace and the ConfigMap first:
+#   kubectl create namespace accounts
+#   kubectl create configmap accounts-mcp-code -n accounts --from-file=company/mcp_server.py
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: accounts-mcp
+  namespace: accounts
+  labels: {app: accounts-mcp}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: accounts-mcp}
+  template:
+    metadata:
+      labels: {app: accounts-mcp}
+    spec:
+      containers:
+      - name: accounts-mcp
+        image: python:3.13-slim
+        command: ["python3", "-u", "/app/mcp_server.py",
+                  "--server", "accounts", "--host", "0.0.0.0", "--port", "8080"]
+        ports:
+        - containerPort: 8080
+          name: mcp
+        readinessProbe:
+          httpGet: {path: /healthz, port: 8080}
+          periodSeconds: 2
+        resources:
+          requests: {cpu: 10m, memory: 32Mi}
+        volumeMounts:
+        - name: code
+          mountPath: /app
+      volumes:
+      - name: code
+        configMap:
+          name: accounts-mcp-code
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: accounts-mcp
+  namespace: accounts
+spec:
+  selector: {app: accounts-mcp}
+  ports:
+  - name: mcp
+    port: 8080
+    targetPort: 8080
+    appProtocol: http

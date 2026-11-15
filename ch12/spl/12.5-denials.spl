@@ -1,0 +1,4 @@
+# Listing 12.5: denied tool calls by agent, last 24 hours.
+index=agentgw reason=Authorization earliest=-24h
+| stats count by agent.id gen_ai.tool.name
+| sort -count

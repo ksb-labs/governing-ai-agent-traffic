@@ -1,0 +1,32 @@
+# Chapter 4 lab "Kill the provider": Listing 4.4 with writer-primary pointed
+# at port 8099, where nothing listens. writer-backup is the stand-in model.
+#
+#   company/start.sh llm
+#   export OPENAI_API_KEY=sk-placeholder ANTHROPIC_API_KEY=placeholder
+#   cd ch04 && agentgateway -f failover.yaml
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+llm:
+  models:
+  - name: writer-primary
+    visibility: internal           # agents can't ask for this name directly
+    provider: anthropic
+    params:
+      model: claude-sonnet-5-5
+      apiKey: "$ANTHROPIC_API_KEY"
+      baseUrl: "http://localhost:8099"     # nothing listens here
+  - name: writer-backup
+    visibility: internal
+    provider: openAI
+    params:
+      model: gpt-5.6
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"
+  virtualModels:
+  - name: support-writer            # the only name agents see
+    routing:
+      failover:
+        targets:
+        - model: writer-primary
+          priority: 1
+        - model: writer-backup
+          priority: 2

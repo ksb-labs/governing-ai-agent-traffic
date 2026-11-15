@@ -1,0 +1,20 @@
+# Jaeger (traces) and Prometheus (metrics) for the Chapter 11 labs.
+#   docker compose -f ch11/docker-compose.yml up -d
+#   Jaeger UI:  http://localhost:16686     Prometheus: http://localhost:9090
+# The gateway runs on your laptop, outside Docker. Prometheus reaches its
+# metrics port (15020) through host.docker.internal.
+services:
+  jaeger:
+    image: jaegertracing/jaeger:latest
+    ports:
+      - "16686:16686"   # UI
+      - "4317:4317"     # OTLP over gRPC
+      - "4318:4318"     # OTLP over HTTP
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

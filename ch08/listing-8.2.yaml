@@ -1,0 +1,26 @@
+# Listing 8.2: a small version of the policy on your laptop, with the test key
+# and token from Chapter 7 and the server-everything tools from Chapter 2.
+# Run ch07/get-test-keys.sh first. The token's subject is test-user.
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+gateways:
+  default:
+    port: 3000
+mcp:
+  policies:
+    jwtAuth:
+      mode: strict
+      issuer: agentgateway.dev
+      audiences: [test.agentgateway.dev]
+      jwks:
+        file: ../ch07/pub-key
+    mcpAuthorization:
+      rules:
+      # Anyone with a valid token may use echo
+      - 'mcp.tool.name == "echo"'
+      # Only the reconciliation agent may add numbers
+      - 'jwt.sub == "recon-agent" && mcp.tool.name == "get-sum"'
+  targets:
+  - name: everything
+    stdio:
+      cmd: npx
+      args: ["-y", "@modelcontextprotocol/server-everything"]

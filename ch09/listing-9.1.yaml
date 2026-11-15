@@ -1,0 +1,30 @@
+# Listings 9.1 and 9.3: the guards on a real Anthropic model, plus the CORS
+# policy the admin UI's Chat Playground needs. A placeholder
+# ANTHROPIC_API_KEY is fine: a rejected prompt never leaves the gateway.
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+llm:
+  policies:
+    cors:
+      allowOrigins: ["http://localhost:15000"]
+      allowMethods: [GET, POST]
+      allowHeaders: ["*"]
+  models:
+  - name: support-writer
+    provider: anthropic
+    params:
+      model: claude-sonnet-5-5
+      apiKey: "$ANTHROPIC_API_KEY"
+    guardrails:
+      request:
+      - regex:
+          action: reject
+          rules:
+          - pattern: "password[=:]\\s*\\S+"
+          - pattern: "api[_-]?key[=:]\\s*\\S+"
+        rejection:
+          status: 400
+      response:
+      - regex:
+          action: mask
+          rules:
+          - builtin: phoneNumber

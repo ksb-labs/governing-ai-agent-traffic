@@ -1,0 +1,4 @@
+# Listing 12.4: every refund an agent issued, and for whom.
+# (On the repo's lab data the agent is in agent.id; with JWTs it's jwt.sub.)
+index=agentgw protocol=mcp gen_ai.tool.name="issue_refund" http.status=200
+| table _time agent.id jwt.sub enduser.id mcp.target trace.id

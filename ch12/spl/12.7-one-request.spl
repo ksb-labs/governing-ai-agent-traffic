@@ -1,0 +1,5 @@
+# Listing 12.7: everything one user's request touched.
+# Replace the trace ID with one from the searches above.
+index=agentgw trace.id="ecbc2ff877beddf7420b649be3bfa83d"
+| sort _time
+| table _time route protocol agent.id gen_ai.request.model gen_ai.tool.name a2a.method http.status reason

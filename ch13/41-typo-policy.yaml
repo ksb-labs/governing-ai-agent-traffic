@@ -1,0 +1,21 @@
+# Chapter 13, Your turn: a policy whose targetRefs names a route called
+# mcp-route. There's no such route (it's called mcp), so this policy attaches
+# to nothing. If it did attach, it would refuse every request.
+# kubectl apply accepts it anyway. Find out from its status:
+#   kubectl get agentgatewaypolicy deny-everything -n agentgateway-system -o yaml
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: deny-everything
+  namespace: agentgateway-system
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: mcp-route          # typo: the route is called mcp
+  traffic:
+    authorization:
+      action: Deny
+      policy:
+        matchExpressions:
+        - 'true'

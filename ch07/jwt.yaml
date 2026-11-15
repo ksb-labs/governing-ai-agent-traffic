@@ -1,0 +1,20 @@
+# Chapter 7 lab: Listing 7.3 with one line added under params.
+# Run ch07/get-test-keys.sh first to download pub-key and test-token.jwt.
+#
+#   company/start.sh llm
+#   cd ch07 && agentgateway -f jwt.yaml
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+llm:
+  policies:
+    jwtAuth:
+      mode: strict
+      issuer: agentgateway.dev
+      audiences: [test.agentgateway.dev]
+      jwks:
+        file: ./pub-key    # relative to where you run agentgateway
+  models:
+  - name: "*"
+    provider: openAI
+    params:
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"

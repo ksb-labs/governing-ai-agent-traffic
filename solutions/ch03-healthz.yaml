@@ -1,0 +1,36 @@
+# Chapter 3, Your turn: a /healthz route the gateway answers by itself.
+# bodyExpression is CEL, so the fixed string needs its own quotes.
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+gateways:
+  default:
+    port: 3000
+    protocol: HTTP
+
+mcp:
+  policies:
+    cors:
+      allowOrigins: ["*"]
+      allowHeaders: [mcp-protocol-version, content-type, cache-control,
+                     mcp-session-id]
+      exposeHeaders: ["Mcp-Session-Id"]
+  targets:
+  - name: everything
+    stdio:
+      cmd: npx
+      args: ["-y", "@modelcontextprotocol/server-everything"]
+
+routes:
+- name: healthz
+  matches:
+  - path:
+      exact: /healthz
+  policies:
+    directResponse:
+      status: 200
+      bodyExpression: '"gateway ok"'
+- name: ledger-api
+  matches:
+  - path:
+      pathPrefix: /api
+  backends:
+  - host: localhost:8082

@@ -1,0 +1,56 @@
+# Listings 13.3 and 13.4: an OpenAI backend and route, and the Chapter 9
+# request guard as an AgentgatewayPolicy attached to that route. Create the
+# provider key Secret first:
+#   kubectl create secret generic openai-secret -n agentgateway-system \
+#     --from-literal=Authorization="$OPENAI_API_KEY"
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: openai
+  namespace: agentgateway-system
+spec:
+  ai:
+    provider:
+      openai:
+        model: gpt-5.6-luna
+  policies:
+    auth:
+      secretRef:
+        name: openai-secret         # holds the provider API key
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: openai
+  namespace: agentgateway-system
+spec:
+  parentRefs:
+  - name: agentgateway
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /v1/chat/completions
+    backendRefs:
+    - group: agentgateway.dev
+      kind: AgentgatewayBackend
+      name: openai
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: openai-prompt-guard
+  namespace: agentgateway-system
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: openai
+  backend:
+    ai:
+      promptGuard:
+        request:
+        - regex:
+            action: Mask
+            builtins:
+            - Ssn

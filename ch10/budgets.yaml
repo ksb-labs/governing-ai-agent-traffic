@@ -1,0 +1,51 @@
+# Chapter 10 lab "A budget in real dollars": Listing 10.3, with the hackathon
+# budget cut to a tenth of a cent (0.001 USD) so you don't wait all day.
+# Every looping call costs 0.0001818 USD at gpt-5.6-luna's catalog price.
+# The running totals live in agentgateway.db next to this file, so they
+# survive a restart. Delete it to start over.
+#
+#   company/start.sh llm
+#   cd ch10 && agentgateway -f budgets.yaml
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+config:
+  database:
+    url: sqlite://./agentgateway.db    # budgets are stored here
+llm:
+  policies:
+    apiKey:
+      mode: strict
+      keys:
+      - key: "$SUPPORT_AGENT_KEY"
+        metadata: {name: support, agent: support, team: customer-care}
+        budgets:
+        - name: daily-spend
+          limit:
+            unit: USD
+            amount: 50            # 50 US dollars...
+          window:
+            rolling: 24h          # ...per day (midnight to midnight UTC)
+          onBudgetExceeded: Block
+      - key: "$HACKATHON_AGENT_KEY"
+        metadata: {name: hackathon, agent: hackathon, team: labs}
+        allowedModels: ["classifier"]    # this key may only use one model
+        budgets:
+        - name: daily-spend
+          limit:
+            unit: USD
+            amount: 0.001         # a tenth of a cent, for the lab
+          window:
+            rolling: 24h
+          onBudgetExceeded: Block
+  models:
+  - name: classifier
+    provider: openAI
+    params:
+      model: gpt-5.6-luna
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"
+  - name: support-writer
+    provider: openAI
+    params:
+      model: gpt-5.6
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"

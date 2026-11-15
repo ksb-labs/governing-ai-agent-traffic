@@ -1,0 +1,22 @@
+# Chapter 2, Your turn 2: one of the company's own servers instead of server-everything.
+# Start it first with: company/start.sh accounts
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+gateways:
+  default:
+    port: 3000
+mcp:
+  policies:
+    cors:
+      allowOrigins:
+      - "*"
+      allowHeaders:
+      - mcp-protocol-version
+      - content-type
+      - cache-control
+      - mcp-session-id
+      exposeHeaders:
+      - "Mcp-Session-Id"
+  targets:
+  - name: accounts
+    mcp:
+      host: http://localhost:8081/mcp

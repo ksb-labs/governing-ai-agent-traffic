@@ -1,0 +1,17 @@
+# Chapter 5, Your turn: start the stdio server with an empty environment and
+# pass back only PATH. debug_env then shows no secrets.
+# Run it from the ch05 folder, like stdio-leak.yaml:
+#   cd ch05 && agentgateway -f ../solutions/ch05-stdio-clear-env.yaml
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+gateways:
+  default:
+    port: 3000
+mcp:
+  targets:
+  - name: hackathon
+    stdio:
+      cmd: python3
+      args: ["../company/mcp_server.py", "--server", "hackathon", "--stdio"]
+      clear_env: true
+      env:
+        PATH: "$PATH"

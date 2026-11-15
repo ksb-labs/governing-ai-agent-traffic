@@ -1,0 +1,29 @@
+# Listing 5.2: a small spec for the ledger API, with one safe operation and
+# one dangerous one.
+openapi: 3.0.3
+info:
+  title: Ledger API
+  version: "1.0"
+paths:
+  /entries:
+    get:
+      operationId: list_entries
+      summary: Lists ledger entries for one account
+      parameters:
+      - name: account
+        in: query
+        required: true
+        schema: {type: string}
+      responses:
+        "200": {description: The entries}
+  /entries/{id}:
+    delete:
+      operationId: delete_entry
+      summary: Deletes a ledger entry
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: string}
+      responses:
+        "204": {description: Deleted}

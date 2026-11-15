@@ -1,0 +1,67 @@
+# Chapter 11 labs: Listings 11.1, 11.2 and 11.4 together, in front of the
+# company's model and tools on port 3000, with the agent keys from Chapter 7.
+#
+#   docker compose -f ch11/docker-compose.yml up -d     # Jaeger and Prometheus
+#   company/start.sh llm docs accounts
+#   cd ch11 && agentgateway -f config.yaml
+#
+# The same keys guard both the model and the tools, so they're written once
+# (&agent-keys) and reused (*agent-keys).
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+config:
+  metrics:                       # Listing 11.4 (read at startup)
+    fields:
+      add:
+        agent: apiKey.agent      # becomes a label on every metric
+
+frontendPolicies:
+  tracing:                       # Listings 11.1 and 11.2
+    host: localhost:4317
+    protocol: grpc
+    randomSampling: "true"
+    resources:
+      service.name: '"prod-agentgateway"'
+      deployment.environment: '"production"'
+    attributes:
+      agent.id: 'apiKey.agent'
+      enduser.id: 'request.headers["x-end-user"]'
+
+gateways:
+  default:
+    port: 3000
+
+llm:
+  policies:
+    apiKey: &agent-keys
+      mode: strict
+      keys:
+      - key: "$SUPPORT_AGENT_KEY"
+        metadata: {name: support-agent, agent: support, team: customer-care}
+      - key: "$RECON_AGENT_KEY"
+        metadata: {name: recon-agent, agent: reconciliation, team: finance-ops}
+      - key: "$HACKATHON_AGENT_KEY"
+        metadata: {name: hackathon-agent, agent: hackathon, team: labs}
+  models:
+  - name: support-writer
+    provider: openAI
+    params:
+      model: gpt-5.6
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"
+  - name: classifier
+    provider: openAI
+    params:
+      model: gpt-5.6-luna
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"
+
+mcp:
+  policies:
+    apiKey: *agent-keys
+  targets:
+  - name: docs
+    mcp:
+      host: http://localhost:8083/mcp
+  - name: accounts
+    mcp:
+      host: http://localhost:8081/mcp

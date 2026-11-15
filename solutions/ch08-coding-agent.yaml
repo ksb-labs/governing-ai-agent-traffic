@@ -1,0 +1,41 @@
+# Chapter 8, Your turn:
+#  1. fetch_email (the customer inbox) is for support only; every agent keeps
+#     search_kb_articles.
+#  2. A require rule: a key with no agent in its metadata gets nothing.
+# The coding agent now sees exactly one tool: docs_search_kb_articles.
+# legacy-demo-key is a made-up key with no agent, there only to test rule 2.
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+gateways:
+  default:
+    port: 3000
+mcp:
+  policies:
+    apiKey:
+      mode: strict
+      keys:
+      - key: "$SUPPORT_AGENT_KEY"
+        metadata: {name: support-agent, agent: support, team: customer-care}
+      - key: "$RECON_AGENT_KEY"
+        metadata: {name: recon-agent, agent: reconciliation, team: finance-ops}
+      - key: "$CODING_AGENT_KEY"
+        metadata: {name: coding-agent, agent: coding, team: platform}
+      - key: "legacy-demo-key"
+        metadata: {name: legacy-script}     # no agent
+    mcpAuthorization:
+      rules:
+      # Every call must come from a key that names its agent
+      - require: 'has(apiKey.agent)'
+      # Any agent may search the knowledge base
+      - 'mcp.tool.target == "docs" && mcp.tool.name == "search_kb_articles"'
+      # Only support may read customer email or look up an account
+      - 'apiKey.agent == "support" && mcp.tool.target == "docs" && mcp.tool.name == "fetch_email"'
+      - 'apiKey.agent == "support" && mcp.tool.target == "accounts" && mcp.tool.name == "lookup_account"'
+      # Only reconciliation may issue refunds
+      - 'apiKey.agent == "reconciliation" && mcp.tool.target == "accounts" && mcp.tool.name == "issue_refund"'
+  targets:
+  - name: docs
+    mcp:
+      host: http://localhost:8083/mcp
+  - name: accounts
+    mcp:
+      host: http://localhost:8081/mcp

@@ -1,0 +1,31 @@
+# Listing 10.4: hit the limit on purpose. A tiny request bucket next to
+# Listing 10.1's token bucket, a password guard so nothing reaches a real
+# model, and the request log for the admin UI. A placeholder
+# ANTHROPIC_API_KEY is fine.
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+config:
+  database:
+    url: sqlite://./requests.db    # request log for the admin UI
+llm:
+  policies:
+    localRateLimit:
+    - maxTokens: 5000
+      tokensPerFill: 5000
+      fillInterval: 1h
+      type: tokens
+    - maxTokens: 3          # 3 requests a minute
+      tokensPerFill: 3
+      fillInterval: 60s
+      type: requests
+  models:
+  - name: support-writer
+    provider: anthropic
+    params:
+      model: claude-sonnet-5-5
+      apiKey: "$ANTHROPIC_API_KEY"
+    guardrails:
+      request:
+      - regex:
+          action: reject
+          rules:
+          - pattern: "password[=:]\\s*\\S+"

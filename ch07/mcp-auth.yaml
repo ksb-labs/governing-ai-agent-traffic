@@ -1,0 +1,29 @@
+# Chapter 7 lab "The gateway's half of MCP sign-in": Listing 7.4 with the test
+# key from section 7.3 and the company's docs server.
+# Run ch07/get-test-keys.sh first.
+#
+#   company/start.sh docs
+#   cd ch07 && agentgateway -f mcp-auth.yaml
+#   curl -s http://localhost:3000/.well-known/oauth-protected-resource/mcp
+#   python3 tools/mcp_client.py --token "$(cat ch07/test-token.jwt)" list   # from the repo folder
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+gateways:
+  default:
+    port: 3000
+mcp:
+  policies:
+    mcpAuthentication:
+      mode: strict
+      issuer: agentgateway.dev
+      audiences:
+      - test.agentgateway.dev
+      jwks:
+        file: ./pub-key
+      resourceMetadata:
+        resource: http://localhost:3000/mcp
+        scopesSupported: [read:tools]
+        bearerMethodsSupported: [header]
+  targets:
+  - name: docs
+    mcp:
+      host: http://localhost:8083/mcp

@@ -1,0 +1,22 @@
+# Chapter 5 lab: Listings 5.1 and 5.3 together, pointed at the company's real
+# servers: docs and accounts over Streamable HTTP, the ledger from its OpenAPI spec.
+#
+#   company/start.sh accounts docs ledger
+#   cd ch05 && agentgateway -f config.yaml
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+gateways:
+  default:
+    port: 3000
+mcp:
+  targets:
+  - name: docs
+    mcp:
+      host: http://localhost:8083/mcp
+  - name: accounts
+    mcp:
+      host: http://localhost:8081/mcp
+  - name: ledger
+    openapi:
+      schema:
+        file: ./ledger-openapi.yaml     # the API's OpenAPI description
+      host: http://localhost:8082

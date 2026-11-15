@@ -1,0 +1,27 @@
+# Chapter 7, Your turn: Listing 7.1 with no secret in it, so it can go into Git.
+# The support agent's key is stored as its SHA-256 hash:
+#   printf %s "$SUPPORT_AGENT_KEY" | openssl dgst -sha256
+# support-demo-key still gets a 200; support-demo-key2 gets a 401.
+# (The reconciliation key is hashed the same way.)
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+llm:
+  policies:
+    apiKey:
+      mode: strict
+      keys:
+      - keyHash: "sha256:18c498964cd65c5c38b44572dc61736bc213007348421df36a38331968e0bed2"     # support-demo-key
+        metadata:
+          name: support-agent
+          agent: support
+          team: customer-care
+      - keyHash: "sha256:a380ac413eb2dc7865badf82b9fa15ee68614cfa114d0ce148b3ae58f2bed292"     # recon-demo-key
+        metadata:
+          name: recon-agent
+          agent: reconciliation
+          team: finance-ops
+  models:
+  - name: "*"
+    provider: openAI
+    params:
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"

@@ -1,0 +1,71 @@
+# Chapter 12 lab: Listings 12.1 and 12.2, tracing turned on so every record
+# carries a trace.id, and Chapter 8's tool rules so denials land in the trail.
+# Model and tools share port 3000.
+#
+#   company/start.sh --reckless
+#   cd ch12 && agentgateway -f config.yaml | tee gateway.log
+#
+# If Jaeger from Chapter 11 isn't running you'll see BatchSpanProcessor
+# export errors in the log. tools/logq.py skips them.
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+config:
+  logging:                       # Listing 12.1 (read at startup)
+    format: json
+
+frontendPolicies:
+  accessLog:                     # Listing 12.2
+    add:
+      agent.id: apiKey.agent
+      agent.team: apiKey.team
+      enduser.id: 'request.headers["x-end-user"]'
+  tracing:
+    host: localhost:4317
+    protocol: grpc
+    randomSampling: "true"
+    resources:
+      service.name: '"prod-agentgateway"'
+
+gateways:
+  default:
+    port: 3000
+
+llm:
+  policies:
+    apiKey: &agent-keys
+      mode: strict
+      keys:
+      - key: "$SUPPORT_AGENT_KEY"
+        metadata: {name: support-agent, agent: support, team: customer-care}
+      - key: "$RECON_AGENT_KEY"
+        metadata: {name: recon-agent, agent: reconciliation, team: finance-ops}
+      - key: "$HACKATHON_AGENT_KEY"
+        metadata: {name: hackathon-agent, agent: hackathon, team: labs}
+  models:
+  - name: support-writer
+    provider: openAI
+    params:
+      model: gpt-5.6
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"
+  - name: classifier
+    provider: openAI
+    params:
+      model: gpt-5.6-luna
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"
+
+mcp:
+  policies:
+    apiKey: *agent-keys
+    mcpAuthorization:            # Chapter 8's rules
+      rules:
+      - 'mcp.tool.target == "docs"'
+      - 'apiKey.agent == "support" && mcp.tool.name == "lookup_account"'
+      - 'apiKey.agent == "reconciliation" && mcp.tool.name == "issue_refund"'
+  targets:
+  - name: docs
+    mcp:
+      host: http://localhost:8083/mcp
+  - name: accounts
+    mcp:
+      host: http://localhost:8081/mcp

@@ -1,0 +1,26 @@
+# Chapter 8, in the cluster: a policy the security team can own. It targets
+# the mcp route by name, requires an API key from the agent-keys Secret, and
+# allows each agent only its own tool. The route itself never changes.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: mcp-agent-rules
+  namespace: agentgateway-system
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: mcp
+  traffic:
+    apiKeyAuthentication:
+      mode: Strict
+      secretRef:
+        name: agent-keys
+  backend:
+    mcp:
+      authorization:
+        action: Allow
+        policy:
+          matchExpressions:
+          - 'apiKey.agent == "support" && mcp.tool.name == "lookup_account"'
+          - 'apiKey.agent == "reconciliation" && mcp.tool.name == "issue_refund"'

@@ -1,0 +1,37 @@
+# Chapter 9 lab "Stop the poisoned email": the company's model and tools on
+# one port (3000), and one guard scoped to tool output that looks for text
+# telling the model to ignore its rules. It starts in audit mode, as section
+# 9.5 advises. Change audit to reject and save to block the email.
+#
+#   company/start.sh llm docs accounts
+#   cd ch09 && agentgateway -f injection-guard.yaml
+#   python3 company/support_agent.py "Customer C123 wrote in. Please read email E-881 and help them."
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+gateways:
+  default:
+    port: 3000
+llm:
+  models:
+  - name: support-writer
+    provider: openAI
+    params:
+      model: gpt-5.6
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"
+    guardrails:
+      request:
+      - scope: [toolOutput]
+        regex:
+          action: audit
+          rules:
+          - pattern: "(?i)ignore (all |any )?(prior|previous|earlier) (rules|instructions)"
+        rejection:
+          status: 400
+mcp:
+  targets:
+  - name: docs
+    mcp:
+      host: http://localhost:8083/mcp
+  - name: accounts
+    mcp:
+      host: http://localhost:8081/mcp

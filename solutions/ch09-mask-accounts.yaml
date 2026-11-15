@@ -1,0 +1,30 @@
+# Chapter 9, Your turn: account IDs (a C and three digits, like C123) never
+# reach an outside model. Custom patterns mask to <masked>.
+# Send "Why was C123 charged twice?" and the echoed answer has no C123 in it.
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+llm:
+  models:
+  - name: support-writer
+    provider: openAI
+    params:
+      model: gpt-5.6
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"
+    guardrails:
+      request:
+      - regex:
+          action: mask
+          rules:
+          - pattern: "\\bC\\d{3}\\b"
+      - regex:
+          action: reject
+          rules:
+          - pattern: "password[=:]\\s*\\S+"
+          - pattern: "api[_-]?key[=:]\\s*\\S+"
+        rejection:
+          status: 400
+      response:
+      - regex:
+          action: mask
+          rules:
+          - builtin: phoneNumber

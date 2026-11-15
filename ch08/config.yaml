@@ -1,0 +1,38 @@
+# Chapter 8 lab: Listing 8.1 with API keys in place of jwtAuth (Chapter 7's
+# keys do the identity provider's job on a laptop), three agent keys, and
+# rules that read apiKey.agent where Listing 8.1 reads jwt.sub.
+#
+#   company/start.sh accounts docs
+#   export SUPPORT_AGENT_KEY=support-demo-key RECON_AGENT_KEY=recon-demo-key
+#   export CODING_AGENT_KEY=coding-demo-key
+#   cd ch08 && agentgateway -f config.yaml
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+gateways:
+  default:
+    port: 3000
+mcp:
+  policies:
+    apiKey:
+      mode: strict
+      keys:
+      - key: "$SUPPORT_AGENT_KEY"
+        metadata: {name: support-agent, agent: support, team: customer-care}
+      - key: "$RECON_AGENT_KEY"
+        metadata: {name: recon-agent, agent: reconciliation, team: finance-ops}
+      - key: "$CODING_AGENT_KEY"
+        metadata: {name: coding-agent, agent: coding, team: platform}
+    mcpAuthorization:
+      rules:
+      # Any authenticated agent may read the knowledge base
+      - 'mcp.tool.target == "docs"'
+      # Only support may look up an account
+      - 'apiKey.agent == "support" && mcp.tool.name == "lookup_account"'
+      # Only reconciliation may issue refunds
+      - 'apiKey.agent == "reconciliation" && mcp.tool.name == "issue_refund"'
+  targets:
+  - name: docs
+    mcp:
+      host: http://localhost:8083/mcp
+  - name: accounts
+    mcp:
+      host: http://localhost:8081/mcp

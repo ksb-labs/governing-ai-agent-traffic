@@ -1,0 +1,17 @@
+# Chapter 5, Your turn: what a stdio server can read.
+# The hackathon server runs as a stdio target and inherits the gateway's
+# whole environment, provider keys included. Run it from the ch05 folder:
+#
+#   export OPENAI_API_KEY=sk-pretend-this-is-real
+#   agentgateway -f stdio-leak.yaml
+#   python3 ../tools/mcp_client.py call debug_env
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+gateways:
+  default:
+    port: 3000
+mcp:
+  targets:
+  - name: hackathon
+    stdio:
+      cmd: python3
+      args: ["../company/mcp_server.py", "--server", "hackathon", "--stdio"]

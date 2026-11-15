@@ -1,0 +1,64 @@
+# Chapter 11, Your turn: trace every request but export only the failures
+# (Listing 11.3 with randomSampling: "true"). Send one good request and one
+# with a wrong key, each with your own traceparent; only the 401 reaches Jaeger.
+# Its span is named POST /*, because it failed before a route was picked.
+# Run it from the ch11 folder: cd ch11 && agentgateway -f ../solutions/ch11-errors-only.yaml
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+config:
+  metrics:                       # Listing 11.4 (read at startup)
+    fields:
+      add:
+        agent: apiKey.agent      # becomes a label on every metric
+
+frontendPolicies:
+  tracing:                       # Listings 11.1 and 11.2
+    host: localhost:4317
+    protocol: grpc
+    randomSampling: "true"             # trace everything...
+    filter: 'response.code >= 400'     # ...but export only the failures
+    resources:
+      service.name: '"prod-agentgateway"'
+      deployment.environment: '"production"'
+    attributes:
+      agent.id: 'apiKey.agent'
+      enduser.id: 'request.headers["x-end-user"]'
+
+gateways:
+  default:
+    port: 3000
+
+llm:
+  policies:
+    apiKey: &agent-keys
+      mode: strict
+      keys:
+      - key: "$SUPPORT_AGENT_KEY"
+        metadata: {name: support-agent, agent: support, team: customer-care}
+      - key: "$RECON_AGENT_KEY"
+        metadata: {name: recon-agent, agent: reconciliation, team: finance-ops}
+      - key: "$HACKATHON_AGENT_KEY"
+        metadata: {name: hackathon-agent, agent: hackathon, team: labs}
+  models:
+  - name: support-writer
+    provider: openAI
+    params:
+      model: gpt-5.6
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"
+  - name: classifier
+    provider: openAI
+    params:
+      model: gpt-5.6-luna
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"
+
+mcp:
+  policies:
+    apiKey: *agent-keys
+  targets:
+  - name: docs
+    mcp:
+      host: http://localhost:8083/mcp
+  - name: accounts
+    mcp:
+      host: http://localhost:8081/mcp

@@ -1,0 +1,38 @@
+# Chapter 9 lab "Guards on real traffic": Listings 9.1 and 9.2 on one model,
+# pointed at the stand-in model. The stand-in echoes what you send, so you can
+# watch guards act in both directions.
+#
+#   company/start.sh llm
+#   cd ch09 && agentgateway -f config.yaml
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+llm:
+  models:
+  - name: support-writer
+    provider: openAI
+    params:
+      model: gpt-5.6
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"
+    guardrails:
+      request:
+      # Listing 9.1: never send a credential to a model
+      - regex:
+          action: reject
+          rules:
+          - pattern: "password[=:]\\s*\\S+"
+          - pattern: "api[_-]?key[=:]\\s*\\S+"
+        rejection:
+          status: 400
+      # Listing 9.2: no Social Security numbers from tool output
+      - scope: [toolOutput]
+        regex:
+          action: reject
+          rules:
+          - builtin: ssn
+        rejection:
+          status: 400
+      response:
+      - regex:
+          action: mask
+          rules:
+          - builtin: phoneNumber

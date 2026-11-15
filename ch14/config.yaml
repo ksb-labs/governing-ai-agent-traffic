@@ -1,0 +1,157 @@
+# Chapter 14: the finished gateway from section 14.1, on one port.
+#   Identity       a key per agent, strict mode, on models and tools
+#   Authorization  Chapter 8's least-privilege tool rules
+#   Guardrails     a tool-output guard against the poisoned email, and SSNs
+#   Limits         per-agent token buckets, daily dollar budgets, allowed models
+#   Records        traces, metrics and JSON logs with agent and user on every record
+#
+#   company/start.sh --reckless
+#   cd ch14 && . ./env.sh && agentgateway -f config.yaml | tee gateway.log
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+config:
+  logging:
+    format: json
+  metrics:
+    fields:
+      add:
+        agent: apiKey.agent
+  database:
+    url: sqlite://./agentgateway.db    # budget totals
+
+frontendPolicies:
+  accessLog:
+    add:
+      agent.id: apiKey.agent
+      agent.team: apiKey.team
+      enduser.id: 'request.headers["x-end-user"]'
+  tracing:
+    host: localhost:4317
+    protocol: grpc
+    randomSampling: "true"
+    resources:
+      service.name: '"prod-agentgateway"'
+    attributes:
+      agent.id: 'apiKey.agent'
+      enduser.id: 'request.headers["x-end-user"]'
+
+gateways:
+  default:
+    port: 3000
+
+llm:
+  policies:
+    apiKey:
+      mode: strict
+      keys:
+      - key: "$SUPPORT_AGENT_KEY"
+        metadata: {name: support-agent, agent: support, team: customer-care}
+        budgets:
+        - name: daily-spend
+          limit: {unit: USD, amount: 50}
+          window: {rolling: 24h}
+          onBudgetExceeded: Block
+      - key: "$RECON_AGENT_KEY"
+        metadata: {name: recon-agent, agent: reconciliation, team: finance-ops}
+        budgets:
+        - name: daily-spend
+          limit: {unit: USD, amount: 50}
+          window: {rolling: 24h}
+          onBudgetExceeded: Block
+      - key: "$CODING_AGENT_KEY"
+        metadata: {name: coding-agent, agent: coding, team: platform}
+        allowedModels: ["classifier"]
+        budgets:
+        - name: daily-spend
+          limit: {unit: USD, amount: 20}
+          window: {rolling: 24h}
+          onBudgetExceeded: Block
+      - key: "$HACKATHON_AGENT_KEY"
+        metadata: {name: hackathon-agent, agent: hackathon, team: labs}
+        allowedModels: ["classifier"]
+        budgets:
+        - name: daily-spend
+          limit: {unit: USD, amount: 5}
+          window: {rolling: 24h}
+          onBudgetExceeded: Block
+    localRateLimit:
+    - maxTokens: 5000              # LLM tokens per agent per hour
+      tokensPerFill: 5000
+      fillInterval: 1h
+      type: tokens
+      key: apiKey.agent
+  models:
+  - name: support-writer
+    provider: openAI
+    params:
+      model: gpt-5.6
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"
+    guardrails:
+      request:
+      - scope: [toolOutput]          # the poisoned email arrives as tool output
+        regex:
+          action: reject
+          rules:
+          - pattern: "(?i)ignore (all |any )?(prior|previous|earlier) (rules|instructions)"
+          - builtin: ssn
+        rejection:
+          status: 400
+  # The same model with no guard: replay-poisoned-email.sh uses it as a
+  # stand-in for a guard that misses. Don't ship this one.
+  - name: support-writer-noguard
+    provider: openAI
+    params:
+      model: gpt-5.6
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"
+  - name: classifier
+    provider: openAI
+    params:
+      model: gpt-5.6-luna
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"
+
+mcp:
+  policies:
+    apiKey:
+      mode: strict
+      keys:
+      - key: "$SUPPORT_AGENT_KEY"
+        metadata: {name: support-agent, agent: support, team: customer-care}
+      - key: "$RECON_AGENT_KEY"
+        metadata: {name: recon-agent, agent: reconciliation, team: finance-ops}
+      - key: "$CODING_AGENT_KEY"
+        metadata: {name: coding-agent, agent: coding, team: platform}
+      - key: "$HACKATHON_AGENT_KEY"
+        metadata: {name: hackathon-agent, agent: hackathon, team: labs}
+    mcpAuthorization:
+      rules:
+      - require: 'has(apiKey.agent)'
+      - 'mcp.tool.target == "docs" && mcp.tool.name == "search_kb_articles"'
+      - 'apiKey.agent == "support" && mcp.tool.target == "docs" && mcp.tool.name == "fetch_email"'
+      - 'apiKey.agent == "support" && mcp.tool.target == "accounts" && mcp.tool.name == "lookup_account"'
+      - 'apiKey.agent == "reconciliation" && mcp.tool.target == "accounts" && mcp.tool.name == "issue_refund"'
+  targets:
+  - name: docs
+    mcp:
+      host: http://localhost:8083/mcp
+  - name: accounts
+    mcp:
+      host: http://localhost:8081/mcp
+
+routes:
+# The disputes agent (python3 company/disputes_agent.py), for the Your turn.
+- name: disputes-agent
+  matches:
+  - path:
+      pathPrefix: /disputes
+  policies:
+    urlRewrite:
+      path:
+        prefix: /
+    a2a: {}
+    authorization:
+      rules:
+      - 'request.method == "GET" || "x-end-user" in request.headers'
+  backends:
+  - host: localhost:9998

@@ -1,0 +1,13 @@
+# Chapter 8's agent keys as a Kubernetes Secret: one entry per agent, each a
+# key (or keyHash) and the metadata rules can read as apiKey.agent.
+# Demo keys only; in a real cluster this Secret comes from your secret store.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: agent-keys
+  namespace: agentgateway-system
+stringData:
+  support-agent: |
+    {"key": "support-demo-key", "metadata": {"name": "support-agent", "agent": "support", "team": "customer-care"}}
+  recon-agent: |
+    {"key": "recon-demo-key", "metadata": {"name": "recon-agent", "agent": "reconciliation", "team": "finance-ops"}}

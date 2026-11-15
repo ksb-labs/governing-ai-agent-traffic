@@ -1,0 +1,31 @@
+# Chapter 3 lab: Listing 3.1, local edition. The ledger route points at the
+# repo's ledger API on your laptop instead of ledger.internal.example.com.
+# Start it first with: company/start.sh ledger
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+gateways:
+  default:              # one port for all agent traffic
+    port: 3000
+    protocol: HTTP
+
+# Tools: MCP traffic, served at /mcp on the default gateway
+mcp:
+  policies:
+    cors:
+      allowOrigins: ["*"]
+      allowHeaders: [mcp-protocol-version, content-type, cache-control,
+                     mcp-session-id]
+      exposeHeaders: ["Mcp-Session-Id"]
+  targets:
+  - name: everything
+    stdio:
+      cmd: npx
+      args: ["-y", "@modelcontextprotocol/server-everything"]
+
+# Everything else: plain HTTP routes on the same gateway
+routes:
+- name: ledger-api
+  matches:
+  - path:
+      pathPrefix: /api
+  backends:
+  - host: localhost:8082      # plain HTTP on your laptop, so no backendTLS

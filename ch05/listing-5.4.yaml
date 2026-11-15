@@ -1,0 +1,21 @@
+# Listing 5.4: two local stdio servers, for the admin UI's Tool Playground.
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+gateways:
+  default:
+    port: 3000
+mcp:
+  policies:
+    cors:
+      allowOrigins: ["http://localhost:15000"]
+      allowMethods: [GET, POST, DELETE]
+      allowHeaders: ["*"]
+      exposeHeaders: ["Mcp-Session-Id"]
+  targets:
+  - name: docs
+    stdio:
+      cmd: npx
+      args: ["-y", "@modelcontextprotocol/server-everything"]
+  - name: accounts
+    stdio:
+      cmd: npx
+      args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]

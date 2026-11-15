@@ -1,0 +1,29 @@
+# Chapter 7 lab: Listing 7.1 with one line added under params, so the support
+# agent's key gets a real 200 from the stand-in model.
+#
+#   company/start.sh llm
+#   export SUPPORT_AGENT_KEY=support-demo-key RECON_AGENT_KEY=recon-demo-key
+#   export OPENAI_API_KEY=sk-placeholder
+#   cd ch07 && agentgateway -f apikeys.yaml
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+llm:
+  policies:
+    apiKey:
+      mode: strict
+      keys:
+      - key: "$SUPPORT_AGENT_KEY"
+        metadata:
+          name: support-agent     # shown in the admin UI and logs
+          agent: support
+          team: customer-care
+      - key: "$RECON_AGENT_KEY"
+        metadata:
+          name: recon-agent
+          agent: reconciliation
+          team: finance-ops
+  models:
+  - name: "*"
+    provider: openAI
+    params:
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"

@@ -1,0 +1,40 @@
+# Chapter 4, Your turn: try gpt-5.6-mini on one classifier request in five.
+# Send 40 requests to "classifier" and about 8 log lines say
+# gen_ai.request.model=gpt-5.6-mini.
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+llm:
+  models:
+  - name: support-writer
+    provider: openAI
+    params:
+      model: gpt-5.6
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"
+  - name: classifier-current
+    visibility: internal
+    provider: openAI
+    params:
+      model: gpt-5.6-luna
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"
+  - name: classifier-canary
+    visibility: internal
+    provider: openAI
+    params:
+      model: gpt-5.6-mini
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"
+  - name: local-private
+    provider: openAI
+    params:
+      model: llama3
+      baseUrl: "http://localhost:8090/v1"
+  virtualModels:
+  - name: classifier
+    routing:
+      weighted:
+        targets:
+        - model: classifier-current
+          weight: 4
+        - model: classifier-canary
+          weight: 1

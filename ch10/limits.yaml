@@ -1,0 +1,36 @@
+# Chapter 10 lab "Per-agent buckets": Listing 10.2 with a small bucket of
+# 3,000 LLM tokens an hour per agent, in front of the stand-in model.
+# Each looping call from company/hackathon_agent.py uses about 690 tokens.
+#
+#   company/start.sh llm
+#   export SUPPORT_AGENT_KEY=support-demo-key HACKATHON_AGENT_KEY=hackathon-demo-key
+#   cd ch10 && agentgateway -f limits.yaml
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+llm:
+  policies:
+    apiKey:
+      mode: strict
+      keys:
+      - key: "$SUPPORT_AGENT_KEY"
+        metadata: {agent: support}
+      - key: "$HACKATHON_AGENT_KEY"
+        metadata: {agent: hackathon}
+    localRateLimit:
+    - maxTokens: 3000
+      tokensPerFill: 3000
+      fillInterval: 1h
+      type: tokens
+      key: apiKey.agent        # one bucket per agent
+  models:
+  - name: classifier
+    provider: openAI
+    params:
+      model: gpt-5.6-luna
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"
+  - name: support-writer
+    provider: openAI
+    params:
+      model: gpt-5.6
+      apiKey: "$OPENAI_API_KEY"
+      baseUrl: "http://localhost:8090/v1"
