@@ -1,6 +1,6 @@
 # agentgateway in Action: companion code
 
-This is the code for the book *agentgateway in Action: Securing, Observing, and Governing AI Agent Traffic* by Kamal Singh Bisht.
+This is the code for the book *Governing AI Agent Traffic: Security, Observability, and Control with agentgateway* by Kamal Singh Bisht.
 
 Every lab in the book runs from this repo on your own computer. You don't need a model API key or a cloud account. The repo includes a stand-in model that answers for real, reports token usage, and gets priced from agentgateway's own catalog.
 
